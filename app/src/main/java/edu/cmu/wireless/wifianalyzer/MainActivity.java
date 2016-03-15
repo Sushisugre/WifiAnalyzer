@@ -1,22 +1,30 @@
 package edu.cmu.wireless.wifianalyzer;
 
-import java.util.Locale;
-
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.app.ActionBar;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.net.wifi.WifiManager;
+import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
-import android.support.v4.app.FragmentTransaction;
 import android.support.v4.app.FragmentPagerAdapter;
-import android.os.Bundle;
 import android.support.v4.view.ViewPager;
-import android.view.Gravity;
+import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+
+import java.util.Locale;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -35,6 +43,9 @@ public class MainActivity extends AppCompatActivity {
      */
     ViewPager mViewPager;
 
+    WiFiStatusReceiver wifiReceiver;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -48,6 +59,18 @@ public class MainActivity extends AppCompatActivity {
         // Set up the ViewPager with the sections adapter.
         mViewPager = (ViewPager) findViewById(R.id.pager);
         mViewPager.setAdapter(mSectionsPagerAdapter);
+
+
+        this.wifiReceiver = new WiFiStatusReceiver();
+
+//        this.registerReceiver(this.wifiReceiver,
+//                new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+//        this.registerReceiver(this.wifiReceiver,
+//                new IntentFilter(WifiManager.RSSI_CHANGED_ACTION));
+        this.registerReceiver(this.wifiReceiver,
+                new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+
+        this.scheduleWiFiScan();
 
     }
 
@@ -74,6 +97,30 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    @Override
+    public void onDestroy(){
+        super.onDestroy();
+        // unregister receiver
+        this.unregisterReceiver(this.wifiReceiver);
+    }
+
+    /**
+     * Schedule a task to scan wifi periodically
+     */
+    public void scheduleWiFiScan(){
+        ScheduledExecutorService scheduler =
+                Executors.newSingleThreadScheduledExecutor();
+
+        scheduler.scheduleAtFixedRate
+                (new Runnable() {
+                    public void run() {
+                        Log.d("PeriodicScan", "start scanning");
+                        WifiManager wifiManager = (WifiManager) WifiAnalyzer.getAppContext()
+                                .getSystemService(Context.WIFI_SERVICE);
+                        wifiManager.startScan();
+                    }
+                }, 0, 2, TimeUnit.SECONDS);
+    }
 
     /**
      * A {@link FragmentPagerAdapter} that returns a fragment corresponding to
@@ -81,14 +128,20 @@ public class MainActivity extends AppCompatActivity {
      */
     public class SectionsPagerAdapter extends FragmentPagerAdapter {
 
+
         public SectionsPagerAdapter(FragmentManager fm) {
             super(fm);
+        }
+
+        public String makeFragmentName(int containerViewId, long id) {
+            return "android:switcher:" + containerViewId + ":" + id;
         }
 
         @Override
         public Fragment getItem(int position) {
             // getItem is called to instantiate the fragment for the given page.
             // Return a PlaceholderFragment (defined as a static inner class below).
+
             return PlaceholderFragment.newInstance(position + 1);
         }
 
@@ -123,6 +176,8 @@ public class MainActivity extends AppCompatActivity {
          */
         private static final String ARG_SECTION_NUMBER = "section_number";
 
+        TextView signalStrength;
+
         /**
          * Returns a new instance of this fragment for the given section
          * number.
@@ -135,14 +190,58 @@ public class MainActivity extends AppCompatActivity {
             return fragment;
         }
 
-        public PlaceholderFragment() {
-        }
 
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
             View rootView = inflater.inflate(R.layout.fragment_main, container, false);
+            signalStrength = (TextView)rootView.findViewById(R.id.signalStrength);
+            signalStrength.setText("Loading...");
+            Log.d("PlaceHolderFragment", "signalStrength View set");
+
             return rootView;
+        }
+
+        public void updateSignalStrength(int value){
+            Log.d("PlaceHolderFragment", "update signal strength: " + value);
+            if(signalStrength!=null)
+                signalStrength.setText("Signal Strength: "+ Integer.toString(value) + " dBm");
+        }
+    }
+
+
+    public class WiFiStatusReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(final Context context, Intent intent) {
+
+            Log.d("WifiReceiver", intent.getAction());
+
+            ConnectivityManager cm =
+                    (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
+
+            final NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+
+            if (activeNetwork != null
+                    && activeNetwork.isConnectedOrConnecting()
+                    && activeNetwork.getType() == ConnectivityManager.TYPE_WIFI){
+
+                MainActivity.this.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        int item = mViewPager.getCurrentItem();
+                        String tag = mSectionsPagerAdapter.makeFragmentName(R.id.pager,item);
+                        FragmentManager fragmentManager = MainActivity.this.getSupportFragmentManager();
+                        PlaceholderFragment fragment = (PlaceholderFragment)fragmentManager.
+                                findFragmentByTag(tag);
+
+                        WifiManager wifiManager = (WifiManager) WifiAnalyzer.getAppContext()
+                                .getSystemService(Context.WIFI_SERVICE);
+                        fragment.updateSignalStrength(wifiManager.getConnectionInfo().getRssi());
+                    }
+                });
+
+            }
         }
     }
 
