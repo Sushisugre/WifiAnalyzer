@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -26,7 +27,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class MainActivity extends AppCompatActivity {
+import edu.cmu.wireless.wifianalyzer.fragments.MapViewFragment;
+
+public class MainActivity extends AppCompatActivity
+        implements MapViewFragment.OnFragmentInteractionListener {
 
     /**
      * The {@link android.support.v4.view.PagerAdapter} that will provide
@@ -100,7 +104,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onDestroy(){
         super.onDestroy();
-        // unregister receiver
         this.unregisterReceiver(this.wifiReceiver);
     }
 
@@ -120,6 +123,11 @@ public class MainActivity extends AppCompatActivity {
                         wifiManager.startScan();
                     }
                 }, 0, 2, TimeUnit.SECONDS);
+    }
+
+    @Override
+    public void onFragmentInteraction(Uri uri) {
+        // TODO: define the interaction between activity and MapView
     }
 
     /**
@@ -142,7 +150,11 @@ public class MainActivity extends AppCompatActivity {
             // getItem is called to instantiate the fragment for the given page.
             // Return a PlaceholderFragment (defined as a static inner class below).
 
-            return PlaceholderFragment.newInstance(position + 1);
+            switch(position) {
+                case 0: return PlaceholderFragment.newInstance(position + 1);
+                case 1: return MapViewFragment.newInstance("aaa","bbb");
+                default: return PlaceholderFragment.newInstance(position + 1);
+            }
         }
 
         @Override
@@ -229,8 +241,7 @@ public class MainActivity extends AppCompatActivity {
                 MainActivity.this.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        int item = mViewPager.getCurrentItem();
-                        String tag = mSectionsPagerAdapter.makeFragmentName(R.id.pager,item);
+                        String tag = mSectionsPagerAdapter.makeFragmentName(R.id.pager,0);
                         FragmentManager fragmentManager = MainActivity.this.getSupportFragmentManager();
                         PlaceholderFragment fragment = (PlaceholderFragment)fragmentManager.
                                 findFragmentByTag(tag);
