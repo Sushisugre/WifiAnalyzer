@@ -13,14 +13,17 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.MapsInitializer;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.MarkerOptions;
 
 import edu.cmu.wireless.wifianalyzer.R;
 import edu.cmu.wireless.wifianalyzer.WifiAnalyzer;
@@ -37,10 +40,14 @@ public class MapViewFragment extends Fragment
             implements
             OnMapReadyCallback,
             LocationListener,
-            GoogleMap.OnMyLocationButtonClickListener {
+            GoogleMap.OnMyLocationButtonClickListener,
+            GoogleApiClient.ConnectionCallbacks,
+            GoogleApiClient.OnConnectionFailedListener{
     protected static final String TAG = MapViewFragment.class.getSimpleName();
-    MapView mMapView;
+    private MapView mMapView;
     private GoogleMap mMap;
+    private GoogleApiClient mGoogleClient;
+
 
 
     // TODO: Rename parameter arguments, choose names that match
@@ -83,6 +90,10 @@ public class MapViewFragment extends Fragment
             mParam1 = getArguments().getString(ARG_PARAM1);
             mParam2 = getArguments().getString(ARG_PARAM2);
         }
+
+        mGoogleClient = new GoogleApiClient.Builder(WifiAnalyzer.getAppContext(), this, this)
+                .addApi(LocationServices.API)
+                .build();
     }
 
     @Override
@@ -131,28 +142,33 @@ public class MapViewFragment extends Fragment
     }
 
     @Override
+    public void onStart() {
+        super.onStart();
+
+        mGoogleClient.connect();
+    }
+
+    @Override
+    public void onStop() {
+        mGoogleClient.disconnect();
+
+        super.onStop();
+    }
+
+    @Override
     public void onLocationChanged(Location location) {
         Log.d("OnLocationChanged", location.toString());
         mMap.clear();
 
-        MarkerOptions option = new MarkerOptions();
-        option.position(new LatLng(location.getLatitude(),
-                location.getLongitude()));
-
-        option.draggable(true);
-        mMap.addMarker(option);
+//        MarkerOptions option = new MarkerOptions();
+//        option.position(new LatLng(location.getLatitude(),
+//                location.getLongitude()));
+//        option.draggable(true);
+//        mMap.addMarker(option);
 
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
                 new LatLng(location.getLatitude(), location
-                        .getLongitude()), 2));
-
-        mMap.animateCamera( CameraUpdateFactory.zoomTo(21.0f) );
-
-//        CameraPosition cameraPosition = new CameraPosition.Builder()
-//                .target(new LatLng(location.getLatitude(), location.getLongitude()))
-//                .zoom(100).build();
-//        mMap.animateCamera(CameraUpdateFactory
-//                .newCameraPosition(cameraPosition));
+                        .getLongitude()), 20));
 
     }
 
@@ -162,6 +178,36 @@ public class MapViewFragment extends Fragment
         // (the camera animates to the user's current position).
 
         return false;
+    }
+
+    @Override
+    public void onConnected(Bundle bundle) {
+        //start listening to location updates
+        // this is suitable for foreground listening,
+        // with the onLocationChanged() invoked for location updates
+        LocationRequest locationRequest = LocationRequest.create()
+                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
+                .setFastestInterval(5000L)
+                .setInterval(10000L)
+                .setSmallestDisplacement(75.0F);
+
+        if (ContextCompat.checkSelfPermission(
+                WifiAnalyzer.getAppContext(), Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED) {
+            LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleClient, locationRequest, this);
+        } else {
+            // Show rationale and request permission.
+        }
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+
+    }
+
+    @Override
+    public void onConnectionFailed(ConnectionResult connectionResult) {
+
     }
 
     /**
@@ -200,10 +246,5 @@ public class MapViewFragment extends Fragment
         } else {
             // Show rationale and request permission.
         }
-
-//        // Add a marker in Sydney and move the camera
-//        LatLng sydney = new LatLng(-34, 151);
-//        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
-//        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
     }
 }
