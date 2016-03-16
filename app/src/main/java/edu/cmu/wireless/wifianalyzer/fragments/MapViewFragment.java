@@ -24,6 +24,13 @@ import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.MapsInitializer;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.TileOverlay;
+import com.google.android.gms.maps.model.TileOverlayOptions;
+import com.google.maps.android.heatmaps.HeatmapTileProvider;
+import com.google.maps.android.heatmaps.WeightedLatLng;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import edu.cmu.wireless.wifianalyzer.R;
 import edu.cmu.wireless.wifianalyzer.WifiAnalyzer;
@@ -43,11 +50,21 @@ public class MapViewFragment extends Fragment
             GoogleMap.OnMyLocationButtonClickListener,
             GoogleApiClient.ConnectionCallbacks,
             GoogleApiClient.OnConnectionFailedListener{
-    protected static final String TAG = MapViewFragment.class.getSimpleName();
-    private MapView mMapView;
-    private GoogleMap mMap;
-    private GoogleApiClient mGoogleClient;
 
+    protected static final String TAG = MapViewFragment.class.getSimpleName();
+    // MapView
+    private MapView mMapView;
+    // Google mapp object
+    private GoogleMap mMap;
+    // Google API client
+    private GoogleApiClient mGoogleClient;
+    // Samples of signal strength associated with location
+    private List<WeightedLatLng> samples = null;
+    // Signal strength of current location
+    private WeightedLatLng current = null;
+    // HeatMap overlap
+    private TileOverlay mOverlay;
+    private HeatmapTileProvider mProvider;
 
 
     // TODO: Rename parameter arguments, choose names that match
@@ -90,6 +107,10 @@ public class MapViewFragment extends Fragment
             mParam1 = getArguments().getString(ARG_PARAM1);
             mParam2 = getArguments().getString(ARG_PARAM2);
         }
+
+        samples = new ArrayList<>();
+        // make sure there's sample here before creating heatmap
+        samples.add(new WeightedLatLng(new LatLng(0,0),0));
 
         mGoogleClient = new GoogleApiClient.Builder(WifiAnalyzer.getAppContext(), this, this)
                 .addApi(LocationServices.API)
@@ -166,9 +187,17 @@ public class MapViewFragment extends Fragment
 //        option.draggable(true);
 //        mMap.addMarker(option);
 
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
-                new LatLng(location.getLatitude(), location
-                        .getLongitude()), 20));
+        LatLng latLng = new LatLng(location.getLatitude(), location
+                .getLongitude());
+
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 20));
+
+        current = new WeightedLatLng(latLng,30);
+        samples.add(current);
+
+        mOverlay.remove();
+        addHeatMap();
+//        mOverlay.clearTileCache();
 
     }
 
@@ -187,8 +216,8 @@ public class MapViewFragment extends Fragment
         // with the onLocationChanged() invoked for location updates
         LocationRequest locationRequest = LocationRequest.create()
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
-                .setFastestInterval(5000L)
-                .setInterval(10000L)
+                .setFastestInterval(15)
+                .setInterval(30)
                 .setSmallestDisplacement(75.0F);
 
         if (ContextCompat.checkSelfPermission(
@@ -243,8 +272,21 @@ public class MapViewFragment extends Fragment
                 WifiAnalyzer.getAppContext(), Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
             mMap.setMyLocationEnabled(true);
+            addHeatMap();
+
         } else {
             // Show rationale and request permission.
         }
+    }
+
+
+    private void addHeatMap() {
+
+        // Create a heat map tile provider, passing it the latlngs of the police stations.
+        mProvider = new HeatmapTileProvider.Builder()
+                .weightedData(samples)
+                .build();
+        // Add a tile overlay to the map, using the heat map tile provider.
+        mOverlay = mMap.addTileOverlay(new TileOverlayOptions().tileProvider(mProvider));
     }
 }
