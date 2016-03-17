@@ -124,7 +124,6 @@ public class MapViewFragment extends Fragment
         View view = inflater.inflate(R.layout.fragment_map_view, container, false);
         mMapView = (MapView) view.findViewById(R.id.mapView);
         mMapView.onCreate(savedInstanceState);
-
         mMapView.onResume();// needed to get the map to display immediately
 
         try {
@@ -195,7 +194,7 @@ public class MapViewFragment extends Fragment
         current = new WeightedLatLng(latLng,30);
         samples.add(current);
 
-        mOverlay.remove();
+        removeHeatMap();
         addHeatMap();
 //        mOverlay.clearTileCache();
 
@@ -279,13 +278,16 @@ public class MapViewFragment extends Fragment
         }
     }
 
+    private void removeHeatMap() {
+        mOverlay.remove();
+    }
 
     private void addHeatMap() {
 
         // Create a heat map tile provider, passing it the latlngs of the police stations.
         mProvider = new HeatmapTileProvider.Builder()
-                .weightedData(samples)
-                .build();
+                    .weightedData(samples)
+                    .build();
         // Add a tile overlay to the map, using the heat map tile provider.
         mOverlay = mMap.addTileOverlay(new TileOverlayOptions().tileProvider(mProvider));
     }
