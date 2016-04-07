@@ -208,8 +208,16 @@ public class MainActivity extends AppCompatActivity
                                  Bundle savedInstanceState) {
             View rootView = inflater.inflate(R.layout.fragment_main, container, false);
             signalStrength = (TextView)rootView.findViewById(R.id.signalStrength);
-            signalStrength.setText("Loading...");
+            signalStrength.setText(getString(R.string.loading));
             Log.d("PlaceHolderFragment", "signalStrength View set");
+
+//            String libnl_3 = "libnl-3";
+//            System.loadLibrary(libnl_3);
+//
+//            String libnl_gen_3 = "libnl-gen-3";
+//            System.loadLibrary(libnl_gen_3);
+//
+//            Log.d("LIBNL","test");
 
             return rootView;
         }
