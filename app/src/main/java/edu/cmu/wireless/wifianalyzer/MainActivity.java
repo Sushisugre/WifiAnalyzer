@@ -224,6 +224,9 @@ public class MainActivity extends AppCompatActivity
 
         public void updateSignalStrength(int value){
             Log.d("PlaceHolderFragment", "update signal strength: " + value);
+
+            ///////
+
             if(signalStrength!=null)
                 signalStrength.setText("Signal Strength: "+ Integer.toString(value) + " dBm");
         }

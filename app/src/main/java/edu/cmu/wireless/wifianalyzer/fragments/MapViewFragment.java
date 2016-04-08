@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.net.Uri;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
@@ -191,12 +192,21 @@ public class MapViewFragment extends Fragment
 
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 20));
 
-        current = new WeightedLatLng(latLng,30);
+        // get signal strength as weight
+        WifiManager wifiManager = (WifiManager) WifiAnalyzer.getAppContext()
+                .getSystemService(Context.WIFI_SERVICE);
+
+        int signal = wifiManager.getConnectionInfo().getRssi();
+        double weight = ((-1)/(double)(signal))*10000;
+        Log.d("OnLocationChanged", "weight:" + weight);
+
+
+        current = new WeightedLatLng(latLng, weight);
         samples.add(current);
 
+        //        mOverlay.clearTileCache();
         removeHeatMap();
         addHeatMap();
-//        mOverlay.clearTileCache();
 
     }
 
@@ -217,7 +227,8 @@ public class MapViewFragment extends Fragment
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
                 .setFastestInterval(15)
                 .setInterval(30)
-                .setSmallestDisplacement(75.0F);
+                .setSmallestDisplacement(5.0F);
+        // smallest displacement that's considered a location change
 
         if (ContextCompat.checkSelfPermission(
                 WifiAnalyzer.getAppContext(), Manifest.permission.ACCESS_FINE_LOCATION)
@@ -287,6 +298,7 @@ public class MapViewFragment extends Fragment
         // Create a heat map tile provider, passing it the latlngs of the police stations.
         mProvider = new HeatmapTileProvider.Builder()
                     .weightedData(samples)
+                    .radius(30)
                     .build();
         // Add a tile overlay to the map, using the heat map tile provider.
         mOverlay = mMap.addTileOverlay(new TileOverlayOptions().tileProvider(mProvider));
