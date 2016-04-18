@@ -3,6 +3,7 @@ package edu.cmu.wireless.wifianalyzer.fragments;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
@@ -27,26 +28,22 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.TileOverlay;
 import com.google.android.gms.maps.model.TileOverlayOptions;
-import com.google.maps.android.geometry.Point;
+import com.google.maps.android.heatmaps.Gradient;
 import com.google.maps.android.heatmaps.HeatmapTileProvider;
 import com.google.maps.android.heatmaps.WeightedLatLng;
 import com.google.maps.android.projection.SphericalMercatorProjection;
 
-import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Map;
-import java.util.Scanner;
 
+import edu.cmu.wireless.wifianalyzer.FileUtil;
 import edu.cmu.wireless.wifianalyzer.R;
 import edu.cmu.wireless.wifianalyzer.WifiAnalyzer;
 
@@ -83,6 +80,20 @@ public class MapViewFragment extends Fragment
     private TileOverlay mOverlay;
     private HeatmapTileProvider mProvider;
 
+    private static final int[] ALT_HEATMAP_GRADIENT_COLORS = {
+            Color.argb(0, 0, 255, 255),// transparent
+            Color.rgb(102, 225, 0),
+            Color.rgb(255, 208, 0),
+            Color.rgb(255, 77, 0),
+            Color.rgb(255, 0, 0)
+    };
+
+    public static final float[] ALT_HEATMAP_GRADIENT_START_POINTS = {
+            0.0f, 0.10f, 0.20f, 0.60f, 1.0f
+    };
+
+    public static final Gradient ALT_HEATMAP_GRADIENT = new Gradient(ALT_HEATMAP_GRADIENT_COLORS,
+            ALT_HEATMAP_GRADIENT_START_POINTS);
 
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -178,7 +189,8 @@ public class MapViewFragment extends Fragment
     public void onPause(){
         super.onPause();
         try {
-            saveItems();
+            FileOutputStream outputStream = getContext().openFileOutput("sample.json", Context.MODE_PRIVATE);
+            FileUtil.saveItems(outputStream, samples);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -209,15 +221,7 @@ public class MapViewFragment extends Fragment
         Log.d("OnLocationChanged", location.toString());
         mMap.clear();
 
-//        MarkerOptions option = new MarkerOptions();
-//        option.position(new LatLng(location.getLatitude(),
-//                location.getLongitude()));
-//        option.draggable(true);
-//        mMap.addMarker(option);
-
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-        Log.d("test", "lat:" + location.getLatitude()+", lng"+location.getLongitude());
-
 
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 20));
 
@@ -314,8 +318,13 @@ public class MapViewFragment extends Fragment
                 == PackageManager.PERMISSION_GRANTED) {
             mMap.setMyLocationEnabled(true);
             try {
-                readItems();
-            }catch (JSONException e){}
+                FileInputStream inputStream = getContext().openFileInput("sample.json");
+                FileUtil.readItems(inputStream, samples);
+            } catch (JSONException e){
+            } catch (FileNotFoundException e){
+               e.printStackTrace();
+            }
+
             addHeatMap();
 
         } else {
@@ -329,72 +338,15 @@ public class MapViewFragment extends Fragment
 
     private void addHeatMap() {
 
+
         // Create a heat map tile provider, passing it the latlngs of the police stations.
         mProvider = new HeatmapTileProvider.Builder()
                     .weightedData(samples.values())
+                    .gradient(ALT_HEATMAP_GRADIENT)
+//                    .gradient(HeatmapTileProvider.DEFAULT_GRADIENT)
                     .radius(30)
                     .build();
         // Add a tile overlay to the map, using the heat map tile provider.
         mOverlay = mMap.addTileOverlay(new TileOverlayOptions().tileProvider(mProvider));
-    }
-
-    /**
-     * Save sampled signal strength to json file
-     *
-     * @throws JSONException
-     * @throws IOException
-     */
-    private void saveItems() throws JSONException, IOException {
-
-        FileOutputStream outputStream = getContext().openFileOutput("sample.json", Context.MODE_PRIVATE);
-        JSONArray sampleArray = new JSONArray();
-
-        for (Map.Entry<String, WeightedLatLng> entry: samples.entrySet()){
-            WeightedLatLng sample = entry.getValue();
-            JSONObject object = new JSONObject();
-            object.put("time", entry.getKey());
-            object.put("lat", sample.getPoint().x);
-            object.put("lng", sample.getPoint().y);
-            object.put("weight", (-1)/(sample.getIntensity()/10000));
-            sampleArray.put(object);
-
-        }
-
-        outputStream.write(sampleArray.toString().getBytes());
-        outputStream.flush();
-    }
-
-
-    private void readItems() throws JSONException {
-//        InputStream inputStream = getResources().openRawResource(resource);
-        try {
-            Log.d("test", "Read stored file");
-            FileInputStream inputStream = getContext().openFileInput("sample.json");
-            String json = new Scanner(inputStream).useDelimiter("\\A").next();
-            JSONArray array = new JSONArray(json);
-            for (int i = 0; i < array.length(); i++) {
-                JSONObject object = array.getJSONObject(i);
-                double lat = object.getDouble("lat");
-                double lng = object.getDouble("lng");
-                Point point = new Point(lat, lng);
-                LatLng latLng =sProjection.toLatLng(point);
-
-                double weight = ((-1)/(object.getDouble("weight")))*10000;
-                String time = object.getString("time");
-                samples.put(time,new WeightedLatLng(latLng, weight));
-                Log.d("test", "" + lat+" "+" "+lng+" " + weight);
-            }
-
-            if (mOverlay != null) {
-                mOverlay.clearTileCache();
-                addHeatMap();
-            }
-
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-            return;
-        }
-
-
     }
 }
