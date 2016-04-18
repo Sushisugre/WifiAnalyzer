@@ -27,11 +27,25 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.TileOverlay;
 import com.google.android.gms.maps.model.TileOverlayOptions;
+import com.google.maps.android.geometry.Point;
 import com.google.maps.android.heatmaps.HeatmapTileProvider;
 import com.google.maps.android.heatmaps.WeightedLatLng;
+import com.google.maps.android.projection.SphericalMercatorProjection;
 
-import java.util.ArrayList;
-import java.util.List;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Scanner;
 
 import edu.cmu.wireless.wifianalyzer.R;
 import edu.cmu.wireless.wifianalyzer.WifiAnalyzer;
@@ -52,6 +66,8 @@ public class MapViewFragment extends Fragment
             GoogleApiClient.ConnectionCallbacks,
             GoogleApiClient.OnConnectionFailedListener{
 
+    private static final SphericalMercatorProjection sProjection = new SphericalMercatorProjection(1.0D);
+
     protected static final String TAG = MapViewFragment.class.getSimpleName();
     // MapView
     private MapView mMapView;
@@ -60,7 +76,7 @@ public class MapViewFragment extends Fragment
     // Google API client
     private GoogleApiClient mGoogleClient;
     // Samples of signal strength associated with location
-    private List<WeightedLatLng> samples = null;
+    private HashMap< String,WeightedLatLng> samples = null;
     // Signal strength of current location
     private WeightedLatLng current = null;
     // HeatMap overlap
@@ -109,9 +125,11 @@ public class MapViewFragment extends Fragment
             mParam2 = getArguments().getString(ARG_PARAM2);
         }
 
-        samples = new ArrayList<>();
+        samples = new HashMap<>();
         // make sure there's sample here before creating heatmap
-        samples.add(new WeightedLatLng(new LatLng(0,0),0));
+
+        if (samples.isEmpty())
+            samples.put("",new WeightedLatLng(new LatLng(0,0),-70));
 
         mGoogleClient = new GoogleApiClient.Builder(WifiAnalyzer.getAppContext(), this, this)
                 .addApi(LocationServices.API)
@@ -157,6 +175,16 @@ public class MapViewFragment extends Fragment
     }
 
     @Override
+    public void onPause(){
+        super.onPause();
+        try {
+            saveItems();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
     public void onDetach() {
         super.onDetach();
         mListener = null;
@@ -187,8 +215,9 @@ public class MapViewFragment extends Fragment
 //        option.draggable(true);
 //        mMap.addMarker(option);
 
-        LatLng latLng = new LatLng(location.getLatitude(), location
-                .getLongitude());
+        LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+        Log.d("test", "lat:" + location.getLatitude()+", lng"+location.getLongitude());
+
 
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 20));
 
@@ -196,16 +225,18 @@ public class MapViewFragment extends Fragment
         WifiManager wifiManager = (WifiManager) WifiAnalyzer.getAppContext()
                 .getSystemService(Context.WIFI_SERVICE);
 
-        int signal = wifiManager.getConnectionInfo().getRssi();
-        double weight = ((-1)/(double)(signal))*10000;
+        double signal = wifiManager.getConnectionInfo().getRssi();
+        double weight = ((-1)/(signal))*10000;
         Log.d("OnLocationChanged", "weight:" + weight);
 
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-hh:mm:ss.SSS");
+        Date time = Calendar.getInstance().getTime();
 
         current = new WeightedLatLng(latLng, weight);
-        samples.add(current);
+        samples.put(formatter.format(time),current);
 
-        //        mOverlay.clearTileCache();
-        removeHeatMap();
+        mOverlay.clearTileCache();
+//        removeHeatMap();
         addHeatMap();
 
     }
@@ -225,8 +256,8 @@ public class MapViewFragment extends Fragment
         // with the onLocationChanged() invoked for location updates
         LocationRequest locationRequest = LocationRequest.create()
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
-                .setFastestInterval(15)
-                .setInterval(30)
+                .setFastestInterval(150)
+                .setInterval(300)
                 .setSmallestDisplacement(5.0F);
         // smallest displacement that's considered a location change
 
@@ -282,6 +313,9 @@ public class MapViewFragment extends Fragment
                 WifiAnalyzer.getAppContext(), Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
             mMap.setMyLocationEnabled(true);
+            try {
+                readItems();
+            }catch (JSONException e){}
             addHeatMap();
 
         } else {
@@ -297,10 +331,70 @@ public class MapViewFragment extends Fragment
 
         // Create a heat map tile provider, passing it the latlngs of the police stations.
         mProvider = new HeatmapTileProvider.Builder()
-                    .weightedData(samples)
+                    .weightedData(samples.values())
                     .radius(30)
                     .build();
         // Add a tile overlay to the map, using the heat map tile provider.
         mOverlay = mMap.addTileOverlay(new TileOverlayOptions().tileProvider(mProvider));
+    }
+
+    /**
+     * Save sampled signal strength to json file
+     *
+     * @throws JSONException
+     * @throws IOException
+     */
+    private void saveItems() throws JSONException, IOException {
+
+        FileOutputStream outputStream = getContext().openFileOutput("sample.json", Context.MODE_PRIVATE);
+        JSONArray sampleArray = new JSONArray();
+
+        for (Map.Entry<String, WeightedLatLng> entry: samples.entrySet()){
+            WeightedLatLng sample = entry.getValue();
+            JSONObject object = new JSONObject();
+            object.put("time", entry.getKey());
+            object.put("lat", sample.getPoint().x);
+            object.put("lng", sample.getPoint().y);
+            object.put("weight", (-1)/(sample.getIntensity()/10000));
+            sampleArray.put(object);
+
+        }
+
+        outputStream.write(sampleArray.toString().getBytes());
+        outputStream.flush();
+    }
+
+
+    private void readItems() throws JSONException {
+//        InputStream inputStream = getResources().openRawResource(resource);
+        try {
+            Log.d("test", "Read stored file");
+            FileInputStream inputStream = getContext().openFileInput("sample.json");
+            String json = new Scanner(inputStream).useDelimiter("\\A").next();
+            JSONArray array = new JSONArray(json);
+            for (int i = 0; i < array.length(); i++) {
+                JSONObject object = array.getJSONObject(i);
+                double lat = object.getDouble("lat");
+                double lng = object.getDouble("lng");
+                Point point = new Point(lat, lng);
+                LatLng latLng =sProjection.toLatLng(point);
+
+                double weight = ((-1)/(object.getDouble("weight")))*10000;
+                String time = object.getString("time");
+                samples.put(time,new WeightedLatLng(latLng, weight));
+                Log.d("test", "" + lat+" "+" "+lng+" " + weight);
+            }
+
+            if (mOverlay != null) {
+                mOverlay.clearTileCache();
+                addHeatMap();
+            }
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+            return;
+        }
+
+
     }
 }
