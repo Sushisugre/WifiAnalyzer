@@ -55,19 +55,19 @@ public class FileUtil {
 
     public static void readItems(FileInputStream inputStream, HashMap<String, WeightedLatLng> samples)
             throws JSONException {
-            String json = new Scanner(inputStream).useDelimiter("\\A").next();
-            JSONArray array = new JSONArray(json);
-            for (int i = 0; i < array.length(); i++) {
-                JSONObject object = array.getJSONObject(i);
-                double lat = object.getDouble("lat");
-                double lng = object.getDouble("lng");
-                Point point = new Point(lat, lng);
-                LatLng latLng =sProjection.toLatLng(point);
+        String json = new Scanner(inputStream).useDelimiter("\\A").next();
+        JSONArray array = new JSONArray(json);
+        for (int i = 0; i < array.length(); i++) {
+            JSONObject object = array.getJSONObject(i);
+            double lat = object.getDouble("lat");
+            double lng = object.getDouble("lng");
+            Point point = new Point(lat, lng);
+            LatLng latLng =sProjection.toLatLng(point);
 
-                double weight = ((-1)/(object.getDouble("weight")))*10000;
-                String time = object.getString("time");
-                samples.put(time,new WeightedLatLng(latLng, weight));
-                Log.d("test", "" + lat+" "+" "+lng+" " + weight);
-            }
+            double weight = ((-1)/(object.getDouble("weight")))*10000;
+            String time = object.getString("time");
+            samples.put(time,new WeightedLatLng(latLng, weight));
+            Log.d("test", "" + lat+" "+" "+lng+" " + weight);
+        }
     }
 }

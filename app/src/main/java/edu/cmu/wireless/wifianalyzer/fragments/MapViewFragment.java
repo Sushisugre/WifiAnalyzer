@@ -20,7 +20,6 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.MapsInitializer;
@@ -31,7 +30,6 @@ import com.google.android.gms.maps.model.TileOverlayOptions;
 import com.google.maps.android.heatmaps.Gradient;
 import com.google.maps.android.heatmaps.HeatmapTileProvider;
 import com.google.maps.android.heatmaps.WeightedLatLng;
-import com.google.maps.android.projection.SphericalMercatorProjection;
 
 import org.json.JSONException;
 
@@ -63,8 +61,6 @@ public class MapViewFragment extends Fragment
             GoogleApiClient.ConnectionCallbacks,
             GoogleApiClient.OnConnectionFailedListener{
 
-    private static final SphericalMercatorProjection sProjection = new SphericalMercatorProjection(1.0D);
-
     protected static final String TAG = MapViewFragment.class.getSimpleName();
     // MapView
     private MapView mMapView;
@@ -89,7 +85,7 @@ public class MapViewFragment extends Fragment
     };
 
     public static final float[] ALT_HEATMAP_GRADIENT_START_POINTS = {
-            0.0f, 0.10f, 0.20f, 0.60f, 1.0f
+            0.0f, 0.02f, 0.08f, 0.25f, 0.5f
     };
 
     public static final Gradient ALT_HEATMAP_GRADIENT = new Gradient(ALT_HEATMAP_GRADIENT_COLORS,
@@ -223,7 +219,7 @@ public class MapViewFragment extends Fragment
 
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
 
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 20));
+//        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 20));
 
         // get signal strength as weight
         WifiManager wifiManager = (WifiManager) WifiAnalyzer.getAppContext()
