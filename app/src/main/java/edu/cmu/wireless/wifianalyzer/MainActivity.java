@@ -7,6 +7,8 @@ import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
+import android.net.wifi.ScanResult;
+import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -15,19 +17,17 @@ import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.TextView;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import edu.cmu.wireless.wifianalyzer.fragments.MapViewFragment;
+import edu.cmu.wireless.wifianalyzer.fragments.PlaceholderFragment;
 
 public class MainActivity extends AppCompatActivity
         implements MapViewFragment.OnFragmentInteractionListener {
@@ -178,50 +178,7 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-    /**
-     * A placeholder fragment containing a simple view.
-     */
-    public static class PlaceholderFragment extends Fragment {
-        /**
-         * The fragment argument representing the section number for this
-         * fragment.
-         */
-        private static final String ARG_SECTION_NUMBER = "section_number";
 
-        TextView signalStrength;
-
-        /**
-         * Returns a new instance of this fragment for the given section
-         * number.
-         */
-        public static PlaceholderFragment newInstance(int sectionNumber) {
-            PlaceholderFragment fragment = new PlaceholderFragment();
-            Bundle args = new Bundle();
-            args.putInt(ARG_SECTION_NUMBER, sectionNumber);
-            fragment.setArguments(args);
-            return fragment;
-        }
-
-
-        @Override
-        public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                                 Bundle savedInstanceState) {
-            View rootView = inflater.inflate(R.layout.fragment_main, container, false);
-            signalStrength = (TextView)rootView.findViewById(R.id.signalStrength);
-            signalStrength.setText(getString(R.string.loading));
-            Log.d("PlaceHolderFragment", "signalStrength View set");
-            return rootView;
-        }
-
-        public void updateSignalStrength(int value){
-            Log.d("PlaceHolderFragment", "update signal strength: " + value);
-
-            ///////
-
-            if(signalStrength!=null)
-                signalStrength.setText("Signal Strength: "+ Integer.toString(value) + " dBm");
-        }
-    }
 
 
     public class WiFiStatusReceiver extends BroadcastReceiver {
@@ -250,7 +207,10 @@ public class MainActivity extends AppCompatActivity
 
                         WifiManager wifiManager = (WifiManager) WifiAnalyzer.getAppContext()
                                 .getSystemService(Context.WIFI_SERVICE);
-                        fragment.updateSignalStrength(wifiManager.getConnectionInfo().getRssi());
+
+                        List<ScanResult> scanResults = wifiManager.getScanResults();
+                        WifiInfo connectionInfo = wifiManager.getConnectionInfo();
+                        fragment.updateSignalStrength(connectionInfo);
                     }
                 });
 

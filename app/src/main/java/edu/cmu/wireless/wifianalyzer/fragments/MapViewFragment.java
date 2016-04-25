@@ -317,6 +317,7 @@ public class MapViewFragment extends Fragment
                 FileInputStream inputStream = getContext().openFileInput("sample.json");
                 FileUtil.readItems(inputStream, samples);
             } catch (JSONException e){
+                e.printStackTrace();
             } catch (FileNotFoundException e){
                e.printStackTrace();
             }
