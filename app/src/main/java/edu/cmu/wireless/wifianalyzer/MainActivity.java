@@ -7,7 +7,6 @@ import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
-import android.net.wifi.ScanResult;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
@@ -20,7 +19,6 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
-import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -117,12 +115,11 @@ public class MainActivity extends AppCompatActivity
         scheduler.scheduleAtFixedRate
                 (new Runnable() {
                     public void run() {
-                        Log.d("PeriodicScan", "start scanning");
                         WifiManager wifiManager = (WifiManager) WifiAnalyzer.getAppContext()
                                 .getSystemService(Context.WIFI_SERVICE);
                         wifiManager.startScan();
                     }
-                }, 0, 2, TimeUnit.SECONDS);
+                }, 0, 5, TimeUnit.SECONDS);
     }
 
     @Override
@@ -208,7 +205,6 @@ public class MainActivity extends AppCompatActivity
                         WifiManager wifiManager = (WifiManager) WifiAnalyzer.getAppContext()
                                 .getSystemService(Context.WIFI_SERVICE);
 
-                        List<ScanResult> scanResults = wifiManager.getScanResults();
                         WifiInfo connectionInfo = wifiManager.getConnectionInfo();
                         fragment.updateSignalStrength(connectionInfo);
                     }
