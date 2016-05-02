@@ -14,8 +14,10 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
+import edu.cmu.wireless.wifianalyzer.APSignalComparator;
 import edu.cmu.wireless.wifianalyzer.ApAdapter;
 import edu.cmu.wireless.wifianalyzer.R;
 import edu.cmu.wireless.wifianalyzer.WifiAnalyzer;
@@ -92,8 +94,7 @@ public class PlaceholderFragment extends Fragment {
         }
 
         // TODO: sort it by signal strength
-
-
+        Collections.sort(mScanResults, new APSignalComparator());
         mApAdapter.setAccessPoints(mScanResults);
         mApAdapter.notifyDataSetChanged();
 
