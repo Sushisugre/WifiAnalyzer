@@ -21,6 +21,7 @@ import edu.cmu.wireless.wifianalyzer.APSignalComparator;
 import edu.cmu.wireless.wifianalyzer.ApAdapter;
 import edu.cmu.wireless.wifianalyzer.R;
 import edu.cmu.wireless.wifianalyzer.WifiAnalyzer;
+import edu.cmu.wireless.wifianalyzer.WifiSwitcher;
 
 /**
  * A placeholder fragment containing a simple view.
@@ -93,10 +94,15 @@ public class PlaceholderFragment extends Fragment {
             }
         }
 
-        // TODO: sort it by signal strength
         Collections.sort(mScanResults, new APSignalComparator());
         mApAdapter.setAccessPoints(mScanResults);
         mApAdapter.notifyDataSetChanged();
+
+        //TODO: Test remove me
+        if (mScanResults.get(0).level > connInfo.getRssi()+20) {
+            WifiSwitcher switcher = new WifiSwitcher();
+            switcher.switchTo( WifiAnalyzer.getAppContext(), mScanResults.get(0));
+        }
 
         // update current connection info
         if(signalStrength!=null) {

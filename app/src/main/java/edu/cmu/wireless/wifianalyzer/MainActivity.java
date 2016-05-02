@@ -206,7 +206,8 @@ public class MainActivity extends AppCompatActivity
                                 .getSystemService(Context.WIFI_SERVICE);
 
                         WifiInfo connectionInfo = wifiManager.getConnectionInfo();
-                        fragment.updateSignalStrength(connectionInfo);
+                        if (fragment != null)
+                            fragment.updateSignalStrength(connectionInfo);
                     }
                 });
 
