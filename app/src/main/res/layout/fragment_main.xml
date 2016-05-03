@@ -32,6 +32,14 @@
             android:id="@+id/ap_list"
             android:layout_gravity="center_horizontal"
             android:layout_weight="0.75" />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Click Me"
+            android:id="@+id/test" />
+
+
     </LinearLayout>
 
 </RelativeLayout>

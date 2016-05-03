@@ -11,6 +11,7 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -36,6 +37,7 @@ public class PlaceholderFragment extends Fragment {
     private TextView signalStrength;
     private RecyclerView mAPList;
     private RecyclerView.LayoutManager mLayoutManager;
+    private Button testButton;
     private ApAdapter mApAdapter;
     private List<ScanResult> mScanResults;
 
@@ -73,6 +75,18 @@ public class PlaceholderFragment extends Fragment {
         mApAdapter = new ApAdapter(mScanResults);
         mAPList.setAdapter(mApAdapter);
 
+        testButton = (Button) rootView.findViewById(R.id.test);
+        testButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //TODO: Test remove me
+
+                WifiSwitcher switcher = new WifiSwitcher();
+                switcher.switchTo( WifiAnalyzer.getAppContext(), mScanResults.get(1));
+
+            }
+        });
+
         return rootView;
     }
 
@@ -99,10 +113,11 @@ public class PlaceholderFragment extends Fragment {
         mApAdapter.notifyDataSetChanged();
 
         //TODO: Test remove me
-        if (mScanResults.get(0).level > connInfo.getRssi()+20) {
+        if (mScanResults.get(0).level >= connInfo.getRssi()+20) {
             WifiSwitcher switcher = new WifiSwitcher();
             switcher.switchTo( WifiAnalyzer.getAppContext(), mScanResults.get(0));
         }
+
 
         // update current connection info
         if(signalStrength!=null) {

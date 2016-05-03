@@ -24,20 +24,21 @@ public class WifiSwitcher {
         for (WifiConfiguration config: item) {
             if (!config.SSID.equals("\""+newAP.SSID+"\"")) continue;
 
-            Log.d("WifiPreference", "SSID" + config.SSID);
-            Log.d("WifiPreference", "BSSID" + config.BSSID);
             newConfig = config;
             break;
         }
 
         // no need to switch, already connected to target AP
-        if (newConfig == null ||newConfig.BSSID.equals(newAP.BSSID)) {
+        if (newConfig == null || newConfig.BSSID == null
+                || newConfig.BSSID.equals(newAP.BSSID)) {
             return;
         }
 
         newConfig.BSSID = newAP.BSSID;
         wifiManager.updateNetwork(newConfig);
         wifiManager.reassociate();
+        Log.d("WifiPreference", "Changed to "+newConfig.BSSID );
+
 
         // change back to default setting to allow automatically AP discover
         newConfig.BSSID = "any";

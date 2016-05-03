@@ -65,10 +65,7 @@ public class MainActivity extends AppCompatActivity
 
         this.wifiReceiver = new WiFiStatusReceiver();
 
-//        this.registerReceiver(this.wifiReceiver,
-//                new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
-//        this.registerReceiver(this.wifiReceiver,
-//                new IntentFilter(WifiManager.RSSI_CHANGED_ACTION));
+
         this.registerReceiver(this.wifiReceiver,
                 new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
 
