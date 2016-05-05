@@ -85,7 +85,7 @@ public class MapViewFragment extends Fragment
     };
 
     public static final float[] ALT_HEATMAP_GRADIENT_START_POINTS = {
-            0.0f, 0.02f, 0.08f, 0.25f, 0.5f
+            0.0f, 0.02f, 0.08f, 0.20f, 0.3f
     };
 
     public static final Gradient ALT_HEATMAP_GRADIENT = new Gradient(ALT_HEATMAP_GRADIENT_COLORS,
